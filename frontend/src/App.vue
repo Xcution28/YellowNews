@@ -1,12 +1,18 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, watch } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
 import { useAuth } from '@/composables/useAuth'
 
-const { fetchUser, token } = useAuth()
+const { fetchUser, token, user } = useAuth()
 
 onMounted(() => {
-    if (token.value) {
+    if (token.value && !user.value) {
+        fetchUser()
+    }
+})
+
+watch(token, (newToken) => {
+    if (newToken && !user.value) {
         fetchUser()
     }
 })

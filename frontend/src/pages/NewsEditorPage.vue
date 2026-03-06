@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useNews } from '@/composables/useNews'
 import TipTapEditor from '@/components/TipTapEditor.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -9,7 +9,8 @@ import type { TArticleStatus } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
-const { fetchArticle, createArticle, updateArticle, publishArticle, scheduleArticle } = useNews()
+const { fetchArticle, createArticle, updateArticle, publishArticle, scheduleArticle, editorDraft } =
+    useNews()
 
 const isEditing = computed(() => !!route.params.id)
 const savedId = ref<string | null>(isEditing.value ? (route.params.id as string) : null)
@@ -23,6 +24,19 @@ const form = reactive<{ title: string; content: string; status: TArticleStatus }
     content: '',
     status: 'draft'
 })
+
+watch(
+    form,
+    (val) => {
+        editorDraft.value = {
+            title: val.title,
+            content: val.content,
+            status: val.status,
+            id: savedId.value
+        }
+    },
+    { deep: true }
+)
 
 async function saveDraft(): Promise<void> {
     if (!form.title.trim()) {
@@ -109,20 +123,47 @@ async function handleSchedule(isoDate: string): Promise<void> {
 }
 
 function goPreview(): void {
-    if (savedId.value) router.push(`/news/${savedId.value}/preview`)
+    const previewData = {
+        title: form.title,
+        content: form.content,
+        status: form.status
+    }
+    const path = savedId.value ? `/news/preview/${savedId.value}` : '/news/preview'
+    router.push({
+        path,
+        state: { previewData: JSON.stringify(previewData) }
+    })
 }
 
 onMounted(async () => {
-    if (isEditing.value && route.params.id) {
-        pageLoading.value = true
-        const article = await fetchArticle(route.params.id as string)
-        if (article) {
-            form.title = article.title
-            form.content = article.content
-            form.status = article.status
+    const isSameDraft =
+        editorDraft.value &&
+        editorDraft.value.id === (route.params.id ? (route.params.id as string) : null)
+
+    if (isSameDraft) {
+        form.title = editorDraft.value!.title
+        form.content = editorDraft.value!.content
+        form.status = editorDraft.value!.status as TArticleStatus
+    } else {
+        editorDraft.value = null
+        if (isEditing.value && route.params.id) {
+            pageLoading.value = true
+            const article = await fetchArticle(route.params.id as string)
+            if (article) {
+                form.title = article.title
+                form.content = article.content
+                form.status = article.status
+            }
+            pageLoading.value = false
         }
-        pageLoading.value = false
     }
+})
+
+onBeforeRouteLeave((to, _from, next) => {
+    if (to.name !== 'news-preview') {
+        editorDraft.value = null
+    }
+    next()
 })
 </script>
 
@@ -179,7 +220,7 @@ onMounted(async () => {
                         Сохранить черновик
                     </button>
 
-                    <button class="btn btn--ghost" :disabled="!savedId" @click="goPreview">
+                    <button class="btn btn--ghost" @click="goPreview">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="16"
@@ -195,7 +236,7 @@ onMounted(async () => {
                             <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
                             <circle cx="12" cy="12" r="3"></circle>
                         </svg>
-                        Просмотр
+                        Предпросмотр
                     </button>
 
                     <div class="editor-actions__right">

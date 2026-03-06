@@ -1,16 +1,43 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useNews } from '@/composables/useNews'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { formatDateTime } from '@/utils/date'
+import type { IArticle } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const { currentArticle, isLoading, fetchArticle } = useNews()
 
-onMounted(() => {
-    fetchArticle(route.params.id as string)
+const localArticle = ref<IArticle | null>(null)
+
+const displayArticle = computed(() => localArticle.value || currentArticle.value)
+
+onMounted(async () => {
+    const previewState = history.state?.previewData
+    if (previewState) {
+        try {
+            const data = JSON.parse(previewState)
+            localArticle.value = {
+                id: (route.params.id as string) || 'draft',
+                title: data.title,
+                content: data.content,
+                status: data.status,
+                author: {
+                    id: 'local',
+                    name: 'Вы (Предпросмотр)',
+                    email: ''
+                },
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            }
+        } catch (e) {
+            console.error('Ошибка при загрузке предпросмотра', e)
+        }
+    } else if (route.params.id) {
+        await fetchArticle(route.params.id as string)
+    }
 })
 </script>
 
@@ -41,15 +68,15 @@ onMounted(() => {
                 <div class="spinner"></div>
             </div>
 
-            <article v-else-if="currentArticle" class="preview-article">
+            <article v-else-if="displayArticle" class="preview-article">
                 <header class="preview-article__header">
-                    <StatusBadge :status="currentArticle.status" />
-                    <h1 class="preview-article__title">{{ currentArticle.title }}</h1>
+                    <StatusBadge :status="displayArticle.status" />
+                    <h1 class="preview-article__title">{{ displayArticle.title }}</h1>
                     <div class="preview-article__meta">
-                        <span>Автор: {{ currentArticle.author?.name ?? 'Неизвестный' }}</span>
+                        <span>Автор: {{ displayArticle.author?.name ?? 'Неизвестный' }}</span>
                         <time>{{
                             formatDateTime(
-                                currentArticle.publishAt ?? currentArticle.createdAt,
+                                displayArticle.publishAt ?? displayArticle.createdAt,
                                 'long'
                             )
                         }}</time>
@@ -58,7 +85,7 @@ onMounted(() => {
 
                 <div
                     class="preview-article__content tiptap-prose"
-                    v-html="currentArticle.content"
+                    v-html="displayArticle.content"
                 ></div>
             </article>
 

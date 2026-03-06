@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, watch, onBeforeUnmount } from 'vue'
+import { watch, onBeforeUnmount } from 'vue'
 import { useEditor, EditorContent } from '@tiptap/vue-3'
 import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
+import Link from '@tiptap/extension-link'
 import { useUpload } from '@/composables/useUpload'
 import type { IUploadResponse } from '@/types'
 
@@ -16,13 +17,6 @@ const emit = defineEmits<{
 
 const { uploadFile } = useUpload()
 
-interface IAttachedFile {
-    url: string
-    filename: string
-}
-
-const attachedFiles = ref<IAttachedFile[]>([])
-
 const headingButtons = [
     { label: 'H1', level: 1 as const },
     { label: 'H2', level: 2 as const },
@@ -35,7 +29,14 @@ const editor = useEditor({
         StarterKit.configure({
             codeBlock: { languageClassPrefix: 'language-' }
         }),
-        Image.configure({ inline: false, allowBase64: true })
+        Image.configure({ inline: false, allowBase64: true }),
+        Link.configure({
+            openOnClick: false,
+            HTMLAttributes: {
+                rel: 'noopener noreferrer',
+                target: '_blank'
+            }
+        })
     ],
     editorProps: {
         attributes: {
@@ -69,16 +70,18 @@ async function handleImageUpload(e: Event): Promise<void> {
 
 async function handleFileAttach(e: Event): Promise<void> {
     const file = (e.target as HTMLInputElement).files?.[0]
-    if (!file) return
+    if (!file || !editor.value) return
     const result: IUploadResponse | null = await uploadFile(file)
     if (result) {
-        attachedFiles.value.push({ url: result.url, filename: result.filename })
+        editor.value
+            .chain()
+            .focus()
+            .insertContent(
+                ` <a href="${result.url}" target="_blank" rel="noopener noreferrer">${result.filename}</a> `
+            )
+            .run()
     }
     ;(e.target as HTMLInputElement).value = ''
-}
-
-function removeAttachment(url: string): void {
-    attachedFiles.value = attachedFiles.value.filter((f) => f.url !== url)
 }
 
 onBeforeUnmount(() => {
@@ -188,50 +191,6 @@ onBeforeUnmount(() => {
         </div>
 
         <EditorContent :editor="editor" class="tiptap-content" />
-
-        <div v-if="attachedFiles.length > 0" class="attached-files">
-            <p class="attached-files__label">Прикрепленные файлы:</p>
-            <ul class="attached-files__list">
-                <li v-for="f in attachedFiles" :key="f.url" class="attached-file">
-                    <a :href="f.url" target="_blank" rel="noopener">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            class="icon-text"
-                        >
-                            <path
-                                d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
-                            ></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                        </svg>
-                        {{ f.filename }}
-                    </a>
-                    <button class="btn btn--ghost btn--sm" @click="removeAttachment(f.url)">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
-                            <path d="M18 6 6 18"></path>
-                            <path d="m6 6 12 12"></path>
-                        </svg>
-                    </button>
-                </li>
-            </ul>
-        </div>
     </div>
 </template>
 
@@ -362,36 +321,12 @@ onBeforeUnmount(() => {
     padding-left: 1.5em
     margin-bottom: 0.8em
 
-.attached-files
-  padding: $space-sm $space-lg
-  border-top: 1px solid $color-border
-
-  &__label
-    font-size: 0.78rem
-    color: $text-muted
-    margin-bottom: $space-xs
-    text-transform: uppercase
-    letter-spacing: 0.05em
-
-  &__list
-    list-style: none
-    display: flex
-    flex-wrap: wrap
-    gap: $space-sm
-
-.attached-file
-  display: flex
-  align-items: center
-  gap: $space-xs
-  background: $color-bg-card
-  border: 1px solid $color-border
-  border-radius: $radius-pill
-  padding: 4px $space-sm
-
   a
-    font-size: 0.8rem
-    color: $text-secondary
+    color: $color-primary
     text-decoration: none
+    border-bottom: 1px dashed rgba($color-primary, 0.4)
+    transition: all $transition
     &:hover
-      color: $color-primary
+      color: lighten($color-primary, 10%)
+      border-bottom-color: $color-primary
 </style>

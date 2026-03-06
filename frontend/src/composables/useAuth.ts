@@ -1,18 +1,18 @@
-import { ref, readonly } from 'vue'
+import { ref, readonly, computed } from 'vue'
 import { authApi } from '@/api/auth'
 import Cookies from 'js-cookie'
 import type { IUser, IAuthCredentials, IRegisterPayload } from '@/types'
-import { mockUser } from '@/mock/data'
+// import { mockUser } from '@/mock/data'
 
 const user = ref<IUser | null>(null)
 const token = ref<string | null>(Cookies.get('token') || null)
 const isLoading = ref(false)
 const error = ref<string | null>(null)
 
-const delay = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms))
+// const delay = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export function useAuth() {
-    const isAuthenticated = ref(!!token.value)
+    const isAuthenticated = computed(() => !!token.value)
 
     async function login(credentials: IAuthCredentials): Promise<void> {
         isLoading.value = true
@@ -21,7 +21,6 @@ export function useAuth() {
             const { data } = await authApi.login(credentials)
             token.value = data.token
             user.value = data.user
-            isAuthenticated.value = true
             Cookies.set('token', data.token, { expires: 7 })
         } catch (e: unknown) {
             error.value =
@@ -40,7 +39,6 @@ export function useAuth() {
             const { data } = await authApi.register(payload)
             token.value = data.token
             user.value = data.user
-            isAuthenticated.value = true
             Cookies.set('token', data.token, { expires: 7 })
         } catch (e: unknown) {
             error.value =
@@ -55,7 +53,6 @@ export function useAuth() {
     function logout(): void {
         token.value = null
         user.value = null
-        isAuthenticated.value = false
         Cookies.remove('token')
     }
 
@@ -63,12 +60,12 @@ export function useAuth() {
         if (!token.value) return
         isLoading.value = true
         try {
-            await delay()
-            user.value = mockUser
+            // await delay()
+            // user.value = mockUser
 
             // вызов API
-            // const { data } = await authApi.me()
-            // user.value = data
+            const { data } = await authApi.user()
+            user.value = data
         } catch {
             logout()
         } finally {

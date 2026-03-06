@@ -18,8 +18,12 @@ api.interceptors.response.use(
     (res) => res,
     (err) => {
         if (err.response?.status === 401) {
-            Cookies.remove('token')
-            window.location.href = '/login'
+            const url = err.config?.url || ''
+
+            if (!url.includes('/api/auth/login') && !url.includes('/api/auth/register')) {
+                Cookies.remove('token')
+                window.location.href = '/login'
+            }
         }
         return Promise.reject(err)
     }

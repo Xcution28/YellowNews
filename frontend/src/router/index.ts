@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-// import Cookies from 'js-cookie'
+import Cookies from 'js-cookie'
 
 const router = createRouter({
     history: createWebHistory(),
@@ -39,7 +39,7 @@ const router = createRouter({
             meta: { requiresAuth: true }
         },
         {
-            path: '/news/:id/preview',
+            path: '/news/preview/:id?',
             name: 'news-preview',
             component: () => import('@/pages/NewsPreviewPage.vue'),
             meta: { requiresAuth: true }
@@ -47,17 +47,17 @@ const router = createRouter({
     ]
 })
 
-// router.beforeEach((to, _from, next) => {
-//   const token = Cookies.get('token')
-//   const requiresAuth = to.meta.requiresAuth !== false
+router.beforeEach((to, _from, next) => {
+    const token = Cookies.get('token')
+    const requiresAuth = to.meta.requiresAuth !== false
 
-//   if (requiresAuth && !token) {
-//     next('/login')
-//   } else if (!requiresAuth && token && (to.name === 'login' || to.name === 'register')) {
-//     next('/news')
-//   } else {
-//     next()
-//   }
-// })
+    if (requiresAuth && !token) {
+        next('/login')
+    } else if (!requiresAuth && token && (to.name === 'login' || to.name === 'register')) {
+        next('/news')
+    } else {
+        next()
+    }
+})
 
 export default router

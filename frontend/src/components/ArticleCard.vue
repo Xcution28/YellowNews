@@ -2,6 +2,7 @@
 import type { IArticle } from '@/types'
 import StatusBadge from './StatusBadge.vue'
 import { formatDate } from '@/utils/date'
+import { useAuth } from '@/composables/useAuth'
 
 defineProps<{ article: IArticle }>()
 defineEmits<{
@@ -9,6 +10,8 @@ defineEmits<{
     edit: [id: string]
     delete: [id: string]
 }>()
+
+const { user } = useAuth()
 </script>
 
 <template>
@@ -44,6 +47,7 @@ defineEmits<{
 
         <div class="article-card__actions" @click.stop>
             <button
+                v-if="user?.role === 'admin' || user?.id === article.author.id"
                 class="btn btn--ghost btn--sm"
                 title="Редактировать"
                 @click="$emit('edit', article.id)"
@@ -86,6 +90,7 @@ defineEmits<{
                 <span>Просмотр</span>
             </button>
             <button
+                v-if="user?.role === 'admin' || user?.id === article.author.id"
                 class="btn btn--danger btn--sm"
                 title="Удалить"
                 @click="$emit('delete', article.id)"

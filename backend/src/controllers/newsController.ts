@@ -2,9 +2,9 @@
  * @module newsController
  * @description Обработчики CRUD для новостных статей, а также действия для публикации и отложенного постинга.
  */
-
 import { Response, NextFunction } from 'express'
 import { Article } from '../models/Article'
+import { User } from '../models/User'
 import { AuthRequest, ArticleStatus } from '../types'
 import { emitEvent } from '../sockets/notifier'
 
@@ -25,7 +25,13 @@ interface ArticleBody {
  */
 export async function list(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-        const articles = await Article.find()
+        const user = await User.findById(req.userId)
+        let query = {}
+        if (user?.role !== 'admin') {
+            query = { $or: [{ status: 'published' }, { author: req.userId }] }
+        }
+
+        const articles = await Article.find(query)
             .populate('author', 'name email')
             .sort({ createdAt: -1 })
         res.json(articles)
@@ -48,6 +54,15 @@ export async function getOne(req: AuthRequest, res: Response, next: NextFunction
             res.status(404).json({ message: 'Статья не найдена' })
             return
         }
+
+        const user = await User.findById(req.userId)
+        const isAuthor = String((article.author as any)._id || article.author) === req.userId
+        
+        if (user?.role !== 'admin' && article.status !== 'published' && !isAuthor) {
+            res.status(403).json({ message: 'Доступ запрещен' })
+            return
+        }
+
         res.json(article)
     } catch (err) {
         next(err)
@@ -80,7 +95,11 @@ export async function create(req: AuthRequest, res: Response, next: NextFunction
         })
 
         await article.populate('author', 'name email')
-        emitEvent('article:created', { articleId: article.id as string })
+        emitEvent('article:created', { 
+            articleId: article.id as string,
+            status: article.status,
+            authorId: String((article.author as any)._id || article.author)
+        })
         res.status(201).json(article)
     } catch (err) {
         next(err)
@@ -99,6 +118,18 @@ export async function update(req: AuthRequest, res: Response, next: NextFunction
     try {
         const { title, content, status, publishAt } = req.body as ArticleBody
 
+        const existingArticle = await Article.findById(req.params.id)
+        if (!existingArticle) {
+            res.status(404).json({ message: 'Статья не найдена' })
+            return
+        }
+
+        const user = await User.findById(req.userId)
+        if (String(existingArticle.author) !== req.userId && user?.role !== 'admin') {
+            res.status(403).json({ message: 'Доступ запрещен' })
+            return
+        }
+
         const article = await Article.findByIdAndUpdate(
             req.params.id,
             { title, content, status, publishAt },
@@ -110,7 +141,11 @@ export async function update(req: AuthRequest, res: Response, next: NextFunction
             return
         }
 
-        emitEvent('article:updated', { articleId: article.id as string })
+        emitEvent('article:updated', { 
+            articleId: article.id as string,
+            status: article.status,
+            authorId: String((article.author as any)._id || article.author)
+        })
         res.json(article)
     } catch (err) {
         next(err)
@@ -127,12 +162,24 @@ export async function update(req: AuthRequest, res: Response, next: NextFunction
  */
 export async function remove(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-        const article = await Article.findByIdAndDelete(req.params.id)
-        if (!article) {
+        const existingArticle = await Article.findById(req.params.id)
+        if (!existingArticle) {
             res.status(404).json({ message: 'Статья не найдена' })
             return
         }
-        emitEvent('article:deleted', { articleId: String(req.params.id) })
+
+        const user = await User.findById(req.userId)
+        if (String(existingArticle.author) !== req.userId && user?.role !== 'admin') {
+            res.status(403).json({ message: 'Доступ запрещен' })
+            return
+        }
+
+        await Article.findByIdAndDelete(req.params.id)
+        emitEvent('article:deleted', { 
+            articleId: String(req.params.id),
+            status: existingArticle.status,
+            authorId: String(existingArticle.author)
+        })
         res.status(204).send()
     } catch (err) {
         next(err)
@@ -149,6 +196,18 @@ export async function remove(req: AuthRequest, res: Response, next: NextFunction
  */
 export async function publish(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
+        const existingArticle = await Article.findById(req.params.id)
+        if (!existingArticle) {
+            res.status(404).json({ message: 'Статья не найдена' })
+            return
+        }
+
+        const user = await User.findById(req.userId)
+        if (String(existingArticle.author) !== req.userId && user?.role !== 'admin') {
+            res.status(403).json({ message: 'Доступ запрещен' })
+            return
+        }
+
         const article = await Article.findByIdAndUpdate(
             req.params.id,
             { status: 'published', publishAt: null },
@@ -160,7 +219,11 @@ export async function publish(req: AuthRequest, res: Response, next: NextFunctio
             return
         }
 
-        emitEvent('article:published', { articleId: article.id as string })
+        emitEvent('article:published', { 
+            articleId: article.id as string,
+            status: 'published',
+            authorId: String((article.author as any)._id || article.author)
+        })
         res.json(article)
     } catch (err) {
         next(err)
@@ -186,6 +249,18 @@ export async function schedule(req: AuthRequest, res: Response, next: NextFuncti
         const date = new Date(publishAt)
         if (isNaN(date.getTime())) {
             res.status(400).json({ message: 'publishAt должен быть валидной строкой ISO даты' })
+            return
+        }
+
+        const existingArticle = await Article.findById(req.params.id)
+        if (!existingArticle) {
+            res.status(404).json({ message: 'Статья не найдена' })
+            return
+        }
+
+        const user = await User.findById(req.userId)
+        if (String(existingArticle.author) !== req.userId && user?.role !== 'admin') {
+            res.status(403).json({ message: 'Доступ запрещен' })
             return
         }
 

@@ -10,6 +10,8 @@ import http from 'http'
 import cors from 'cors'
 import path from 'path'
 import { Server } from 'socket.io'
+import jwt from 'jsonwebtoken'
+import { User } from './models/User'
 
 import { connectDB } from './config/db'
 import { setupSwagger } from './config/swagger'
@@ -66,10 +68,42 @@ const io = new Server(server, {
     }
 })
 
+io.use(async (socket, next) => {
+    try {
+        const token = socket.handshake.auth?.token
+        if (!token) {
+            socket.data.role = 'guest'
+            return next()
+        }
+        const payload = jwt.verify(token, process.env.JWT_SECRET as string) as any
+        const user = await User.findById(payload.userId)
+        if (!user) {
+            socket.data.role = 'guest'
+            return next()
+        }
+
+        socket.data.userId = user.id
+        socket.data.role = user.role
+        next()
+    } catch (err) {
+        socket.data.role = 'guest'
+        next()
+    }
+})
+
 initNotifier(io)
 
 io.on('connection', (socket) => {
-    console.log(`[socket] Клиент подключен: ${socket.id}`)
+    console.log(`[socket] Клиент подключен: ${socket.id}, User: ${socket.data.userId}, Role: ${socket.data.role}`)
+    
+    // Присоединяемся к комнате по ID пользователя и роли
+    if (socket.data.userId) {
+        socket.join(`user:${socket.data.userId}`)
+    }
+    if (socket.data.role === 'admin') {
+        socket.join('admin')
+    }
+
     socket.on('disconnect', () => {
         console.log(`[socket] Клиент отключен: ${socket.id}`)
     })

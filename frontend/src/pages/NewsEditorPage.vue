@@ -2,6 +2,7 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { useNews } from '@/composables/useNews'
+import { useAuth } from '@/composables/useAuth'
 import TipTapEditor from '@/components/TipTapEditor.vue'
 import StatusBadge from '@/components/StatusBadge.vue'
 import ScheduleModal from '@/components/ScheduleModal.vue'
@@ -11,6 +12,7 @@ const route = useRoute()
 const router = useRouter()
 const { fetchArticle, createArticle, updateArticle, publishArticle, scheduleArticle, editorDraft } =
     useNews()
+const { user } = useAuth()
 
 const isEditing = computed(() => !!route.params.id)
 const savedId = ref<string | null>(isEditing.value ? (route.params.id as string) : null)
@@ -150,6 +152,10 @@ onMounted(async () => {
             pageLoading.value = true
             const article = await fetchArticle(route.params.id as string)
             if (article) {
+                if (user.value?.role !== 'admin' && user.value?.id !== article.author.id) {
+                    router.replace('/news')
+                    return
+                }
                 form.title = article.title
                 form.content = article.content
                 form.status = article.status

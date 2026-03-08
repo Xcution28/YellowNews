@@ -15,6 +15,8 @@ export type ArticleEvent =
 /** Структура полезной нагрузки для всех событий статей */
 export interface EventPayload {
     articleId?: string
+    status?: string
+    authorId?: string
 }
 
 let _io: Server | null = null
@@ -36,7 +38,16 @@ export function init(io: Server): void {
  * @param {EventPayload} payload - Опциональная полезная нагрузка с `articleId`
  */
 export function emitEvent(event: ArticleEvent, payload: EventPayload = {}): void {
-    if (_io) {
+    if (!_io) return
+
+    const isPublished = payload.status === 'published' || event === 'article:published'
+
+    if (isPublished) {
         _io.emit(event, payload)
+    } else {
+        if (payload.authorId) {
+            _io.to(`user:${payload.authorId}`).emit(event, payload)
+        }
+        _io.to('admin').emit(event, payload)
     }
 }

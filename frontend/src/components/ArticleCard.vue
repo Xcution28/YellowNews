@@ -5,15 +5,14 @@ import { formatDate } from '@/utils/date'
 
 defineProps<{ article: IArticle }>()
 defineEmits<{
-    open: [id: string]
+    view: [id: string]
     edit: [id: string]
-    preview: [id: string]
     delete: [id: string]
 }>()
 </script>
 
 <template>
-    <article class="article-card" @click="$emit('open', article.id)">
+    <article class="article-card">
         <div class="article-card__header">
             <StatusBadge :status="article.status" />
             <time class="article-card__date">{{
@@ -68,7 +67,7 @@ defineEmits<{
             <button
                 class="btn btn--ghost btn--sm"
                 title="Просмотр"
-                @click="$emit('preview', article.id)"
+                @click="$emit('view', article.id)"
             >
                 <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -120,7 +119,6 @@ defineEmits<{
   border: 1px solid $color-border
   border-radius: $radius-lg
   padding: $space-lg
-  cursor: pointer
   transition: all $transition-slow
   display: flex
   flex-direction: column

@@ -106,9 +106,8 @@ onMounted(() => {
                     v-for="article in filteredArticles"
                     :key="article.id"
                     :article="article"
-                    @open="(id) => router.push(`/news/${id}/edit`)"
+                    @view="(id) => router.push(`/news/${id}`)"
                     @edit="(id) => router.push(`/news/${id}/edit`)"
-                    @preview="(id) => router.push(`/news/${id}/preview`)"
                     @delete="promptDelete"
                 />
             </TransitionGroup>

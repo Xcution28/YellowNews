@@ -43,6 +43,12 @@ const router = createRouter({
             name: 'news-preview',
             component: () => import('@/pages/NewsPreviewPage.vue'),
             meta: { requiresAuth: true }
+        },
+        {
+            path: '/news/:id',
+            name: 'news-view',
+            component: () => import('@/pages/NewsViewPage.vue'),
+            meta: { requiresAuth: true }
         }
     ]
 })

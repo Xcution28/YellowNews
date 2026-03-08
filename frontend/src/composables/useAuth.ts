@@ -2,14 +2,11 @@ import { ref, readonly, computed } from 'vue'
 import { authApi } from '@/api/auth'
 import Cookies from 'js-cookie'
 import type { IUser, IAuthCredentials, IRegisterPayload } from '@/types'
-// import { mockUser } from '@/mock/data'
 
 const user = ref<IUser | null>(null)
 const token = ref<string | null>(Cookies.get('token') || null)
 const isLoading = ref(false)
 const error = ref<string | null>(null)
-
-// const delay = (ms = 400) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export function useAuth() {
     const isAuthenticated = computed(() => !!token.value)
@@ -60,10 +57,6 @@ export function useAuth() {
         if (!token.value) return
         isLoading.value = true
         try {
-            // await delay()
-            // user.value = mockUser
-
-            // вызов API
             const { data } = await authApi.user()
             user.value = data
         } catch {

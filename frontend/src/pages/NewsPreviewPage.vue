@@ -27,7 +27,8 @@ onMounted(async () => {
                 author: {
                     id: 'local',
                     name: 'Вы (Предпросмотр)',
-                    email: ''
+                    email: '',
+                    role: 'user'
                 },
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString()

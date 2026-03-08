@@ -195,6 +195,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style lang="sass">
+@use 'sass:color'
 @use '@/styles/variables' as *
 
 .tiptap-editor
@@ -327,6 +328,6 @@ onBeforeUnmount(() => {
     border-bottom: 1px dashed rgba($color-primary, 0.4)
     transition: all $transition
     &:hover
-      color: lighten($color-primary, 10%)
+      color: color.adjust($color-primary, $lightness: 10%)
       border-bottom-color: $color-primary
 </style>

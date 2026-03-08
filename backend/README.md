@@ -8,9 +8,9 @@
 | Mongoose | MongoDB ODM (работа с базой данных) |
 | JWT + bcryptjs | Аутентификация и шифрование паролей |
 | Socket.IO | Уведомления в реальном времени |
-| multer | Загрузка файлов (изображений) |
+| multer + GridFS | Загрузка и хранение файлов |
 | node-cron | Запланированная публикация статей |
-| Vercel | Бессерверное (serverless) развертывание |
+| Swagger | Документация API |
 
 ---
 
@@ -18,11 +18,11 @@
 
 ```
 backend/
-├── api/
-│   └── index.ts          # Точка входа для бессерверной функции Vercel
 ├── src/
 │   ├── config/
-│   │   └── db.ts         # Подключение к MongoDB
+│   │   ├── db.ts         # Подключение к MongoDB
+│   │   ├── gridfs.ts     # Инициализация GridFS
+│   │   └── swagger.ts    # Конфигурация Swagger
 │   ├── controllers/
 │   │   ├── authController.ts
 │   │   ├── newsController.ts
@@ -43,12 +43,11 @@ backend/
 │   │   └── notifier.ts   # Отправка событий через Socket.IO
 │   ├── utils/
 │   │   └── multerConfig.ts
-│   └── index.ts          # Локальная точка входа для сервера (dev)
-├── uploads/              # Создается автоматически при загрузке файлов
+│   └── index.ts          # Точка входа для сервера
+├── render.yaml           # Конфигурация для деплоя на Render
 ├── .env.example
 ├── .gitignore
-├── package.json
-└── vercel.json
+└── package.json
 ```
 
 ---
@@ -132,32 +131,6 @@ npm run dev
 
 ---
 
-## Развертывание (Vercel)
+## Swagger Документация
 
-> ⚠️ Socket.IO **не** поддерживается в бессерверных (serverless) функциях Vercel.
-> Для полноценной поддержки WebSocket используйте постоянный хостинг (Railway, Render, Fly.io).
-
-### Шаги
-
-```bash
-# Глобальная установка Vercel CLI
-npm i -g vercel
-
-# Находясь в папке backend/
-vercel
-
-# Следуйте подсказкам и затем добавьте переменные окружения:
-vercel env add MONGO_URI
-vercel env add JWT_SECRET
-vercel env add CLIENT_ORIGIN
-
-# Развертывание в production
-vercel --prod
-```
-
-### В файле `.env` фронтенда (после развертывания бэкенда)
-
-```
-VITE_API_BASE_URL=https://ваш-backend.vercel.app
-VITE_WS_URL=https://ваш-backend.vercel.app
-```
+API автоматически документируется через **Swagger UI**: `http://localhost:5000/swagger`

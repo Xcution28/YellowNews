@@ -7,23 +7,28 @@ import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
 
-const UPLOAD_DIR = path.join(__dirname, '../../uploads')
 
-// Убедиться, что папка для загрузок существует при запуске
-if (!fs.existsSync(UPLOAD_DIR)) {
-    fs.mkdirSync(UPLOAD_DIR, { recursive: true })
-}
+// // Статическая загрузка (локально)
+// const UPLOAD_DIR = path.join(__dirname, '../../uploads')
 
-const storage = multer.diskStorage({
-    destination(_req, _file, cb) {
-        cb(null, UPLOAD_DIR)
-    },
-    filename(_req, file, cb) {
-        const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`
-        const ext = path.extname(file.originalname)
-        cb(null, `${uniqueSuffix}${ext}`)
-    }
-})
+// // Убедиться, что папка для загрузок существует при запуске
+// if (!fs.existsSync(UPLOAD_DIR)) {
+//     fs.mkdirSync(UPLOAD_DIR, { recursive: true })
+// }
+
+// const storage = multer.diskStorage({
+//     destination(_req, _file, cb) {
+//         cb(null, UPLOAD_DIR)
+//     },
+//     filename(_req, file, cb) {
+//         const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`
+//         const ext = path.extname(file.originalname)
+//         cb(null, `${uniqueSuffix}${ext}`)
+//     }
+// })
+
+
+const storage = multer.memoryStorage()
 
 /** Разрешенные MIME-типы для загрузки */
 const ALLOWED_MIMES = new Set([

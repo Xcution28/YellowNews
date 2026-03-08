@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import { authMiddleware } from '../middleware/auth'
 import upload from '../utils/multerConfig'
-import { uploadFile } from '../controllers/uploadController'
+import { uploadFile, getFile } from '../controllers/uploadController'
 
 const router = Router()
 
@@ -46,5 +46,10 @@ const router = Router()
  *         description: Ошибка загрузки (неверный формат или нет файла)
  */
 router.post('/', authMiddleware, upload.single('file'), uploadFile)
+
+/**
+ * Получение файла по GridFS ID
+ */
+router.get('/:id', getFile)
 
 export default router

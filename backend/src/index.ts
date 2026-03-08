@@ -41,8 +41,8 @@ app.use(
 // Body Parser
 app.use(express.json())
 
-// Static Uploads
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
+// Static Uploads (на проде используем GridFS)
+// app.use('/uploads', express.static(path.join(__dirname, '../uploads')))
 
 // Routes
 app.use('/api/auth', authRoutes)

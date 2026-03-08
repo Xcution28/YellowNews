@@ -4,6 +4,7 @@
  */
 
 import mongoose from 'mongoose'
+import { initGridFS } from './gridfs'
 
 /**
  * Подключается к MongoDB, используя переменную окружения MONGO_URI.
@@ -14,6 +15,7 @@ export async function connectDB(): Promise<void> {
     try {
         await mongoose.connect(process.env.MONGO_URI as string)
         console.log('Подключено к MongoDB')
+        initGridFS()
     } catch (err) {
         console.error('Ошибка подключения к MongoDB:', (err as Error).message)
         process.exit(1)

@@ -95,6 +95,9 @@ function handleLogout(): void {
     gap: $space-md
     margin-left: auto
 
+    @media (max-width: 576px)
+      display: none
+
   &__actions
     display: flex
     align-items: center
